@@ -37,8 +37,17 @@ play :: State -> State -> Bool
 -- I'm too lazy to write this out
 ```
 
+# Things that Should be Easy
+
+- Adding enums: typed symbols.
+- Defaults like decks, hands, and turns.
+
 # Gotchas and TODOs
 
 - The bot-outputting backend needs to know what information
   players have. Note also that it would have to condition on
   the player it's playing for asymmetric games.
+- Are the turns and notion of players built-in?
+  - What other built-ins are there?
+  - Are decks, hands, and turns better off as libraries?
+    - Also, since some games to let players interrupt turns.
