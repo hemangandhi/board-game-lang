@@ -1,4 +1,4 @@
-use crate::parser;
+use parser;
 
 fn main() {
     println!("Hello, world!");

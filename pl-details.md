@@ -74,6 +74,10 @@ Generally, statements in this language will end in a fullstop (`.`).
 
 Furthermore, there will be support for arithmetic and some sort of lists.
 The notion of lists may be convered by a special type and some functions.
+Furthermore, parentheses will have to be use to disambiguate the order of
+operations.
+
+Comments will start with `Note:`.
 
 ## Type Declarations
 
@@ -83,7 +87,9 @@ Put `ident_phrase := {is <identifier> {or <identifier>}*, has a <type> called <i
 A{n} <identifier> {of <identifier>} <ident_phrase>.
 ```
 
-Comments will start with `Note:`.
+The use of `has a` creates fields in records, and implict getter functions.
+
+To instantiation of record types would be `a <type> with <field> as <value>`.
 
 ### Examples
 
@@ -126,6 +132,12 @@ resolving actions).
 ```
 Given a number called n resolve a factorial to get a number
 by if n is at least 1 providing n * factorial (n - 1) else providing 1.
+```
+
+## Function Calls
+
+```
+the <identifier> of <identifier> {and <identifier}*
 ```
 
 ## Lists
