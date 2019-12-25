@@ -1,18 +1,15 @@
-#[macro_use]
-extern crate nom;
-
-use nom::error::VerboseError;
 use nom::{
-    branch::{alt, switch},
-    bytes::{tag, take_while},
+    branch::alt,
+    bytes::complete::{tag, take_while1},
     character::complete::alphanumeric1 as alnum,
     combinator::map,
     multi::separated_list,
-    sequence::{delimited, pair, preceeded, separated_pair, terminated},
-    Err, IResult,
+    sequence::{delimited, pair, preceded, separated_pair},
+    IResult,
 };
 
 use std::collections::HashMap;
+use std::rc::Rc;
 
 pub enum TypeType {
     // user-declared type
@@ -34,7 +31,7 @@ pub struct Type {
 }
 
 pub enum Value {
-    RecordField(String, Value),
+    RecordField(Vec<String>, Type),
     Literal(Type),
 }
 
@@ -48,69 +45,72 @@ pub enum Comparator {
 }
 
 pub enum Matcher {
-    And(Matcher, Matcher),
-    Or(Matcher, Matcher),
-    Not(Matcher),
+    And(Rc<Matcher>, Rc<Matcher>),
+    Or(Rc<Matcher>, Rc<Matcher>),
+    Not(Rc<Matcher>),
     Comparison(Value, Value, Comparator),
 }
 
-fn whitespace(i: &[u8]) -> IResult<&[u8], &[u8]> {
-    let chars = " \t\r\n";
-    take_while(move |c| chars.contains(c))(i)
+fn whitespace(i: &str) -> IResult<&str, &str> {
+    let spaces = " \t\r\n";
+    take_while1(move |c| spaces.contains(c))(i)
 }
 
-fn parse_type_instantiation(input: &[u8]) -> IResult<&[u8], Type> {
+fn parse_type_instantiation(input: &str) -> IResult<&str, Type> {
     map(
         separated_pair(
-            preceeded(whitespace, alnum),
-            preceeded(whitespace, "of"),
+            preceded(whitespace, alnum),
+            preceded(whitespace, tag("of")),
             separated_list(delimited(whitespace, tag("and"), whitespace), alnum),
         ),
-        |name, typs| Type {
-            name: name,
+        |(name, typs)| Type {
+            name: String::from(name),
             contents: TypeType::Declaration,
-            generics: Result::Err(typs),
+            generics: Result::Err(typs.into_iter().map(String::from).collect()),
         },
-    )
+    )(input)
 }
 
-fn parse_enum(input: &[u8]) -> IResult<&[u8], TypeType> {
-    map(
-        separated_list(preceeded(whitespace, alt(tag("or a"), tag("or an"))), alnum),
-        |v| TypeType::EnumDecl(v),
-    )
-}
-
-fn parse_record(input: &[u8]) -> IResult<&[u8], TypeType> {
+fn parse_enum(input: &str) -> IResult<&str, TypeType> {
     map(
         separated_list(
-            preceeded(whitespace, alt(tag("and a"), tag("and an"))),
+            preceded(whitespace, alt((tag("or a"), tag("or an")))),
+            alnum,
+        ),
+        |v| TypeType::EnumDecl(v.into_iter().map(String::from).collect()),
+    )(input)
+}
+
+fn parse_record(input: &str) -> IResult<&str, TypeType> {
+    map(
+        separated_list(
+            preceded(whitespace, alt((tag("and a"), tag("and an")))),
             separated_pair(
                 delimited(whitespace, parse_type_instantiation, whitespace),
                 tag("called"),
-                preceeded(whitespace, alnum),
+                preceded(whitespace, alnum),
             ),
         ),
         |v| {
             TypeType::RecordDecl(
                 v.into_iter()
-                    .map(|(typ, name)| (name, typ))
+                    .map(|(typ, name)| (String::from(name), typ))
                     .collect::<HashMap<String, Type>>(),
             )
         },
-    )
+    )(input)
 }
 
-fn parse_type_decl(input: &[u8]) -> IResult<&[u8], Type> {
+fn parse_type_decl(input: &str) -> IResult<&str, Type> {
     map(
         pair(
-            preceeded(whitespace, parse_type_instantiation),
-            switch!(alt(tag("is a"), tag("has a"), tag("is an"), tag("has an")),
-            "is a" => call!(parse_enum),
-            "is an" => call!(parse_enum),
-            "has a" => call!(parse_record),
-            "has an" => call!(parse_record),
-            ),
+            preceded(whitespace, parse_type_instantiation),
+            alt((
+                preceded(tag("is a"), parse_enum),
+                preceded(tag("is an"), parse_enum),
+                preceded(tag("has a"), parse_record),
+                preceded(tag("has an"), parse_record),
+            )),
         ),
         |(typ, recs)| Type {
             name: typ.name,
@@ -119,5 +119,5 @@ fn parse_type_decl(input: &[u8]) -> IResult<&[u8], Type> {
             // forward-declare in the type.
             generics: typ.generics,
         },
-    )
+    )(input)
 }
