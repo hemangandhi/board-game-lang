@@ -114,6 +114,9 @@ huh). A table might make the correspondance clear:
 | `<identifier> has <identifier> that {is,has} <matcher>` | `matcher(identifier.identifier)`|
 | `<number> is {at least,bigger than,at most,smaller than} <number>` | `matcher(identifier.identifier)`|
 
+Note that the order of operations will resolve ors, then ands, and finally nots.
+Parentheses would have to be handled here too.
+
 ## Function Declarations
 
 These are mostly transitions in the game states.

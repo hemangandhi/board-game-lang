@@ -31,7 +31,7 @@ pub struct Type {
 }
 
 pub enum Value {
-    RecordField(Vec<String>, Type),
+    Reference(Vec<String>, Type),
     Literal(Type),
 }
 
@@ -45,10 +45,22 @@ pub enum Comparator {
 }
 
 pub enum Matcher {
-    And(Rc<Matcher>, Rc<Matcher>),
-    Or(Rc<Matcher>, Rc<Matcher>),
+    And(Vec<Matcher>),
+    Or(Vec<Matcher>),
     Not(Rc<Matcher>),
     Comparison(Value, Value, Comparator),
+}
+
+pub enum ProvisionBodyStmt {
+    IfStmt(Matcher, Rc<ProvisionBodyStmt>, Rc<ProvisionBodyStmt>),
+    ProvideStmt(Value),
+}
+
+pub struct Provision {
+    name: String,
+    args: HashMap<String, Type>,
+    body: ProvisionBodyStmt,
+    returns: Type,
 }
 
 fn whitespace(i: &str) -> IResult<&str, &str> {
@@ -120,4 +132,16 @@ fn parse_type_decl(input: &str) -> IResult<&str, Type> {
             generics: typ.generics,
         },
     )(input)
+}
+
+fn parse_matcher(input: &str) -> IResult<&str, Matcher> {}
+
+fn parse_provision(input: &str) -> IResult<&str, Provision> {
+    preceded(
+        alt((tag("Given a"), tag("Given an"))),
+        separated_list(
+            delimited(whitespace, tag("and"), whitespace),
+            parse_type_instantiation,
+        ),
+    )
 }
