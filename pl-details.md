@@ -123,7 +123,11 @@ huh). A table might make the correspondance clear:
 | `<number> is {at least,bigger than,at most,smaller than} <number>` | `matcher(identifier.identifier)`|
 
 Note that the order of operations will resolve ors, then ands, and finally nots.
-Parentheses would have to be handled here too.
+
+The dangling else problem is resolved since the type system doesn't actually have a way to have an
+"if" without an "else" since all code paths must provide a value and statements aren't actually
+sequential, but just matching rules. (This may break the "context-free" nature of the language, though,
+since the number of ifs underneath a particular "if" determines which "else" binds to it.)
 
 ## Function Declarations
 

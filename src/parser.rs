@@ -32,7 +32,7 @@ pub struct Type {
 
 pub enum Value {
     // Type is optional so that it can be left empty in parsing.
-    Reference(Vec<Value>, Optional<Type>),
+    Reference(Vec<Value>, Option<Type>),
     // Since the parsing is ambiguous, a Reference(x, Option::None)
     // may later be upgraded to an Invocation.
     Invocation(String, Vec<String>, Type),
@@ -152,14 +152,14 @@ fn parse_value(input: &str) -> IResult<&str, Value> {
             preceded(
                 tag("the"),
                 separated_list(
-                    delimited(whitespace, alt(tag("then"), tag("of")), whitespace),
+                    delimited(whitespace, alt((tag("then"), tag("of"))), whitespace),
                     parse_value,
                 ),
             ),
             |vec_of_an| Value::Reference(vec_of_an, Option::None),
         ),
-        map(delimited(whitespace, alphanumeric1, whitespace), |lit| {
-            Value::Literal(lit, Option::None)
+        map(delimited(whitespace, alnum, whitespace), |lit| {
+            Value::Literal(lit.to_string(), Option::None)
         }),
     ))(input)
 }
@@ -167,7 +167,7 @@ fn parse_value(input: &str) -> IResult<&str, Value> {
 fn parse_matcher(input: &str) -> IResult<&str, Matcher> {
     fn base_matcher(input: &str) -> IResult<&str, Matcher> {
         map(
-            tuple(
+            tuple((
                 delimited(whitespace, parse_value, whitespace),
                 alt((
                     map(tag("is at least"), |_| Comparator::GTE),
@@ -178,32 +178,106 @@ fn parse_matcher(input: &str) -> IResult<&str, Matcher> {
                     map(tag("is"), |_| Comparator::EQ),
                 )),
                 delimited(whitespace, parse_value, whitespace),
-            ),
+            )),
             |(lhs, cmp, rhs)| Matcher::Comparison(lhs, rhs, cmp),
-        )
+        )(input)
     }
 
     fn matcher_just_not(input: &str) -> IResult<&str, Matcher> {
-        preceded(delimited(whitespace, tag("not"), whitespace), base_matcher)(input)
-    }
-    fn matcher_no_and(input: &str) -> IResult<&str, Matcher> {
-        separated_list(
-            delimited(whitespace, tag("or"), whitespace),
-            matcher_just_not,
+        map(
+            preceded(delimited(whitespace, tag("not"), whitespace), base_matcher),
+            |bm| Matcher::Not(Rc::new(bm)),
         )(input)
     }
-    separated_list(
-        delimited(whitespace, tag("and"), whitespace),
-        matcher_no_and,
+    fn matcher_no_and(input: &str) -> IResult<&str, Matcher> {
+        map(
+            separated_list(
+                delimited(whitespace, tag("or"), whitespace),
+                matcher_just_not,
+            ),
+            |ve| Matcher::Or(ve),
+        )(input)
+    }
+    map(
+        separated_list(
+            delimited(whitespace, tag("and"), whitespace),
+            matcher_no_and,
+        ),
+        |ve| Matcher::And(ve),
     )(input)
 }
 
 fn parse_provision(input: &str) -> IResult<&str, Provision> {
-    preceded(
-        alt((tag("Given a"), tag("Given an"))),
-        separated_list(
-            delimited(whitespace, tag("then"), whitespace),
-            parse_type_instantiation,
+    fn get_args(input: &str) -> IResult<&str, HashMap<String, Type>> {
+        map(
+            preceded(
+                alt((tag("Given a"), tag("Given an"))),
+                separated_list(
+                    delimited(whitespace, tag("then"), whitespace),
+                    separated_pair(
+                        alnum,
+                        alt((tag("called a"), tag("called an"))),
+                        parse_type_instantiation,
+                    ),
+                ),
+            ),
+            |v| v.into_iter().map(|(nm, typ)| (nm.to_string(), typ)).collect(),
+        )(input)
+    }
+
+    fn parse_before_body(input: &str) -> IResult<&str, (HashMap<String, Type>, &str, Type)> {
+        tuple((
+            get_args,
+            preceded(alt((tag("resolve a"), tag("resolve an"))), alnum),
+            preceded(
+                delimited(
+                    whitespace,
+                    alt((tag("to get a"), tag("to get an"))),
+                    whitespace,
+                ),
+                parse_type_instantiation,
+            ),
+        ))(input)
+    }
+
+    fn parse_provision_body(input: &str) -> IResult<&str, ProvisionBodyStmt> {
+        alt((
+            map(
+                preceded(
+                    delimited(whitespace, tag("if"), whitespace),
+                    separated_pair(
+                        parse_matcher,
+                        delimited(whitespace, tag("then"), whitespace),
+                        separated_pair(
+                            parse_provision_body,
+                            delimited(whitespace, tag("else"), whitespace),
+                            parse_provision_body,
+                        ),
+                    ),
+                ),
+                |(m, (t, e))| ProvisionBodyStmt::IfStmt(m, Rc::new(t), Rc::new(e)),
+            ),
+            map(
+                preceded(
+                    delimited(whitespace, tag("providing"), whitespace),
+                    parse_value,
+                ),
+                |v| ProvisionBodyStmt::ProvideStmt(v),
+            ),
+        ))(input)
+    }
+
+    map(
+        separated_pair(
+            parse_before_body,
+            delimited(whitespace, tag("by"), whitespace),
+            parse_provision_body,
         ),
-    )
+        |((args, name, ret), body)| Provision {
+            name: name.to_string(),
+            args: args,
+            body: body,
+            returns: ret,
+        },
+    )(input)
 }
