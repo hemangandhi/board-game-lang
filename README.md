@@ -33,6 +33,7 @@ eventually.
 - A compiler that outputs a rulebook (and perhaps card texts).
 - (Slight stretch.) A compiler that outputs website source-code
   for an online version of the game.
+  - (Stretching the stretch) A tree-based turn reviewing system.
 - (Huge stretch.) A compiler that outputs an intelligent player
   (perhaps artifically so).
 

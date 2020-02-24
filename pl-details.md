@@ -79,12 +79,20 @@ operations.
 
 Comments will start with `Note:`.
 
-## Type Declarations
-
-Put `ident_phrase := {is <identifier> {or <identifier>}*, has a <type> called <identifier> {{and,with} a <type> called <identifier>}*}`.
+## Type Instantiation
 
 ```
-A{n} <identifier> {of <identifier>} <ident_phrase>.
+<identifier> {of <identifier>}*
+```
+
+This allows us to define generics.
+
+## Type Declarations
+
+Put `ident_phrase := {is <identifier> {or <identifier>}*, has a <type> called <identifier> {{with} a <type> called <identifier>}*}`.
+
+```
+A{n} <type_instantiation> <ident_phrase>.
 ```
 
 The use of `has a` creates fields in records, and implict getter functions.
@@ -122,7 +130,7 @@ Parentheses would have to be handled here too.
 These are mostly transitions in the game states.
 
 ```
-Given a <type> called <identifier> {and a <type> called <identifier>}+,
+Given a <type> called <identifier> {then a <type> called <identifier>}+,
 resolve a{n} <identifier> to get a{n} <type> by <body>
 ```
 
@@ -140,10 +148,10 @@ by if n is at least 1 providing n * factorial (n - 1) else providing 1.
 ## Function Calls
 
 ```
-the <identifier> of <identifier> {and <identifier}*
+the <identifier> of <identifier> {then <identifier>}*
 ```
 
-## Lists
+## Examples of generics
 
 ```
 An optional of stuff has a stuff called value and number called contents.
@@ -159,6 +167,7 @@ by if values has a head that has a contents that is 0 providing 0
 - The bot-outputting backend needs to know what information
   players have. Note also that it would have to condition on
   the player it's playing for asymmetric games.
+  - Special types for these later on?
 - Are the turns and notion of players built-in?
   - What other built-ins are there?
   - Are decks, hands, and turns better off as libraries?
