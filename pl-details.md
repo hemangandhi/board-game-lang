@@ -7,164 +7,86 @@ and then moves on to real BNF and inference rules.
 
 # Paradigm
 
-- Strongly-typed
-- Looks imperative, but implemented by everything
-  living in a (sort of) monad (and programs just
-  specify the set of states and then transitions).
-  - This is why it might look somewhat "event-driven"
-    as state transitions should trigger other state
-    transitions.
-- Players are sets of transitions.
-- Rules restrict transitions and valid states.
+It doesn't matter what the PL looks like since it won't
+really be user-facing (though as a debugging convenience,
+it'll likely just be some lisp-y specification of some
+record types, enums, and transition rules thereof). The
+PL is mostly about storing a DAG and checking if the DAG
+is well-encoded.
 
-## Example: Tichu
+The PL will be synthesized from interactions the board game
+creator has with a virtual version of the game. Hence, the
+abstactions that the UI can understand will be the limit of
+the PL's expressivity: that which cannot be stated in the UI
+will not be synthesized. Hence, UI components will correspond
+to syntactic forms in the programming language. As a result,
+this doc will describe the capacity of the UI.
 
-Code here is in psuedo-haskell.
+## Rough Architecture
 
-```hs
-data Suit = 0 | 1 | 2 | 3
-data CurrentPlayer = 0 | 1 | 2 | 3
-data Value = 2 | ... | A  -- Deriving Eq, Ord, and Enum might make sense
-data Card = Suited Value Suit | Dog | One | Dragon | Pheonix
+This will be fleshed out into a real web-app architecture
+and in that fleshing out, there will be consideration of the
+alternatives.
 
-data Call = Grand | Tichu | NoCall
+Roughly, however, it seems that a web-app will the be simplest
+UI since it is natural to include image assets and drag and
+drop interactions are straightforwardly supported. In fact,
+even 3D graphics are somewhat tenable in a boardly usable way.
 
--- Assume Vec is a GADT `Nat -> a -> *` and I write Nats like numbers
-data State = Game Int Int (Vec 4 $ Vec 14 $ Maybe Card)
-               [Card] (Vec 4 Call) CurrentPlayer
+As more of the soundness-checking algorithm is understood, web-apps
+can also handle the asyncronicity of time-consuming algorithms.
+Furthermore, given the right amount of tooling, this can allow
+for the rudimentary support of multi-player game testing.
 
-play :: State -> State -> Bool
--- I'm too lazy to write this out
-```
+# Objects
 
-# Things that Should be Easy
+We can expect game objects to abstractly look like:
 
-- Adding enums: typed symbols.
-- Defaults like decks, hands, and turns.
+- Some user-provided image (low-priority)
+- Numeric fields
+- Fields drawn from an enumeration (strings that optionally map to images)
+- Objects this object may contain (ie. a deck of cards, where each card
+  is another object).
 
-# The Grammar
+The notion of choice and who has that choice will be determined by the
+interactions.
 
-(Meta-language: angle brackets are for non-terminal sets, `:=` is used for
-definitions (the left hand side being some string I'm defining and the right
-hand side being a non-definition string in the meta-language, and braces are
-comma-separated lists of values with + being a suffix for one of more and *
-for 0 or more. Backslashes are used to mean the literal versions of the 9
-aforementioned symbols, in case I chose to use them.)
+# Interactions
 
-## Some Useful Non-Terminals and Assumptions
+This determines how objects move around in the game. It will be done
+by dragging and dropping. This means that various areas of the board
+would have to be container objects (for discard piles, hands, and so
+on).
 
-These are all regexes.
+Interactions will define an edge in the game state. The key idea is to
+be able to abstract the example scenario that the game creator may be
+dragging and dropping through. The UI will try this through asking what
+fields in the object just dragged (and dropped to, perhaps) matter.
+Integers and enumerations with equality should suffice for all the
+predicates necessary for most games. Containers would need sizing
+and index-based predicates too (consider sudoku-like constraints).
 
-```
-identifier := \w+
-```
+## Specifying Turns
 
-These are in the other meta-language:
+This will probably be done be specifying the subject who is dragging
+the object.
 
-```
-built_in := {number,list of <type>}
-```
+Most likely, there will be a subject representing the game rules in case
+objects interact.
 
-Note that `<type>` is not purely a syntactic set: it is any type defined below.
+## Specifying Information Known by Players
 
-Also, `<body>` is used to mean conditionals or action resolutions (function
-calls).
+This will probably be special field modifiers on the object or container.
+Containers should be able to modify the visibility of their contents
+(forcing a homogeniety of containers to some extent). An example is in
+most hidden-hand card games: any card's data is visible when the card
+is in a container the player can see (likely their hand and/or a public
+deck).
 
-Generally, statements in this language will end in a fullstop (`.`).
-
-Furthermore, there will be support for arithmetic and some sort of lists.
-The notion of lists may be convered by a special type and some functions.
-Furthermore, parentheses will have to be use to disambiguate the order of
-operations.
-
-Comments will start with `Note:`.
-
-## Type Instantiation
-
-```
-<identifier> {of <identifier>}*
-```
-
-This allows us to define generics.
-
-## Type Declarations
-
-Put `ident_phrase := {is <identifier> {or <identifier>}*, has a <type> called <identifier> {{with} a <type> called <identifier>}*}`.
-
-```
-A{n} <type_instantiation> <ident_phrase>.
-```
-
-The use of `has a` creates fields in records, and implict getter functions.
-
-To instantiation of record types would be `a <type> with <field> as <value>`.
-
-### Examples
-
-| Board Game Language | Haskell |
-|---|---|
-| `A die has a number called value.` | `data die = {value :: Int}`
-| `A suit is spade or club or diamond or heart` | `data suit = spade | club | diamond | heart` |
-
-## Conditionals
-
-The hope is to create phrases that look like boardgame conditions.
-
-```
-if <matcher> then <body> else <body>
-```
-
-Matchers try to be phrases that make sense (thank God English is recursive,
-huh). A table might make the correspondance clear:
-
-| Boardgame lang | Most other programming languages |
-|---|---|
-| `<identifier> has <identifier> that {is,has} <matcher>` | `matcher(identifier.identifier)`|
-| `<number> is {at least,bigger than,at most,smaller than} <number>` | `matcher(identifier.identifier)`|
-
-Note that the order of operations will resolve ors, then ands, and finally nots.
-
-The dangling else problem is resolved since the type system doesn't actually have a way to have an
-"if" without an "else" since all code paths must provide a value and statements aren't actually
-sequential, but just matching rules. (This may break the "context-free" nature of the language, though,
-since the number of ifs underneath a particular "if" determines which "else" binds to it.)
-
-## Function Declarations
-
-These are mostly transitions in the game states.
-
-```
-Given a <type> called <identifier> {then a <type> called <identifier>}+,
-resolve a{n} <identifier> to get a{n} <type> by <body>
-```
-
-The body may use `providing` to indicate returning, but this is to mostly to
-make the language more natural (since players tend to get or lose things by
-resolving actions).
-
-### Example
-
-```
-Given a number called n resolve a factorial to get a number
-by if n is at least 1 providing n * factorial (n - 1) else providing 1.
-```
-
-## Function Calls
-
-```
-the <identifier> of <identifier> {then <identifier>}*
-```
-
-## Examples of generics
-
-```
-An optional of stuff has a stuff called value and number called contents.
-A list of stuff has an optional of stuff called head and list of stuff called tail.
-
-Given a list of stuff called values resolve length to get a number
-by if values has a head that has a contents that is 0 providing 0
-   else providing 1 + length (the tail of values)
-```
+Most simply, this can be an extra UI component next to any field.
+For verification, if an edge predicate depends on the value of a field,
+the visibility of that field will have to allow that edge predicate to be
+evaluated.
 
 # Gotchas and TODOs
 

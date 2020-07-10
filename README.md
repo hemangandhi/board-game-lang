@@ -29,11 +29,14 @@ eventually.
 
 - A strongly-typed event-driven programming language that defines
   the game-play of a board game.
+- An interactive synthesizer for the programming language.
 - A compiler that outputs a proof of the soundness of game rules.
 - A compiler that outputs a rulebook (and perhaps card texts).
 - (Slight stretch.) A compiler that outputs website source-code
   for an online version of the game.
   - (Stretching the stretch) A tree-based turn reviewing system.
+  - (Stretching the stretched stretch) A file format for recording
+    the games.
 - (Huge stretch.) A compiler that outputs an intelligent player
   (perhaps artifically so).
 
@@ -46,7 +49,7 @@ Dreams (as if the above weren't):
 # The Project
 
 - [] Design docs
-- [] The programming language
+- [] The programming system
 - [] A soundness verifier (with meta-theorems, perhaps, of the theorems
      said verifier hopes to produce).
 - [] Rule book output.
