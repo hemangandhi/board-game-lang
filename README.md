@@ -27,24 +27,22 @@ eventually.
 
 # Features
 
-- A strongly-typed event-driven programming language that defines
-  the game-play of a board game.
-- An interactive synthesizer for the programming language.
-- A compiler that outputs a proof of the soundness of game rules.
-- A compiler that outputs a rulebook (and perhaps card texts).
-- (Slight stretch.) A compiler that outputs website source-code
-  for an online version of the game.
-  - (Stretching the stretch) A tree-based turn reviewing system.
-  - (Stretching the stretched stretch) A file format for recording
-    the games.
-- (Huge stretch.) A compiler that outputs an intelligent player
-  (perhaps artifically so).
+## Minimal Viable Product
 
-Dreams (as if the above weren't):
+- An interactive UI that steadily builds game states.
+- Verification about possible moves and an understanding of their interaction.
+  - The computer will query about states it's uncertain about.
+- Production of a rule book. (Of sorts.)
 
-- The UI for the programming language will be block-based so that
-  game developers are forced to write well-formed code (there should
-  be an overriding mechanic).
+## Stage 2
+
+- UI features:
+  - Sprites/Meeples/Cards/other renderable stuff.
+- Bots that play the game.
+
+## Stage 3
+
+- Web UI creation.
 
 # The Project
 

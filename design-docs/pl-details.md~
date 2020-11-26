@@ -12,7 +12,7 @@ really be user-facing (though as a debugging convenience,
 it'll likely just be some lisp-y specification of some
 record types, enums, and transition rules thereof). The
 PL is mostly about storing a DAG and checking if the DAG
-is well-encoded.
+leads to a winning state.
 
 The PL will be synthesized from interactions the board game
 creator has with a virtual version of the game. Hence, the

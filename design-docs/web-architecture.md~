@@ -1,0 +1,8 @@
+# What?
+
+An overview of the design of the processes and components that will for the board game creation system.
+
+# High-level View
+
+A pub-sub system with a central monitor managing a set of workers. There will also be a central database
+for the game's state machine (ie. the PL abstractions).
