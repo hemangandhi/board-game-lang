@@ -3,12 +3,14 @@ with import <nixpkgs> {};
 stdenv.mkDerivation {
   name = "board-game-lang-env";
   buildInputs = [
-    # editor
+    # rust editor
     emacs26Packages.company
     emacs26Packages.rustic
     emacs26Packages.flycheck
     emacs26Packages.eglot
     emacs26Packages.cargo
+    # ng editor
+    emacs26Packages.ng2-mode
     # rust linter
     clippy
     # rust builder
