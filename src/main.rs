@@ -4,14 +4,16 @@ extern crate serde_json;
 extern crate tokio;
 extern crate tokio_tungstenite;
 
-use std::{env, io::Error};
-#[macro_use]
 use std::fmt::Display;
+use std::sync::Arc;
+use std::{env, io::Error};
 
-use futures_util::StreamExt;
+use futures_util::{stream::SplitSink, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::net::{TcpListener, TcpStream};
-use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
+
+mod stream_util;
 
 #[derive(Serialize, Deserialize)]
 struct Point {
@@ -28,6 +30,8 @@ fn flip_pt<E>(p: Point) -> Result<Point, E> {
     Ok(Point { x: p.y, y: p.x })
 }
 
+type OutVecSink = stream_util::VecSink<Arc<SplitSink<WebSocketStream<TcpStream>, Message>>>;
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let addr = env::args()
@@ -37,6 +41,7 @@ async fn main() -> Result<(), Error> {
     // Create the event loop and TCP listener we'll accept connections on.
     let try_socket = TcpListener::bind(&addr).await;
     let listener = try_socket.expect("Failed to bind");
+    let out_stream: OutVecSink = stream_util::VecSink::new();
 
     while let Ok((stream, _)) = listener.accept().await {
         tokio::spawn(accept_connection(stream));
@@ -55,13 +60,14 @@ fn result_to_string<E: Display>(res: Result<String, E>) -> String {
     }
 }
 
-async fn accept_connection(stream: TcpStream) {
+async fn accept_connection(stream: TcpStream, ) {
     let ws_stream = tokio_tungstenite::accept_async(stream)
         .await
         .expect("Error during the websocket handshake occurred");
 
     // write is a Stream<Output = Result<Message, WsError>>
-    // read is the corresponding Sink
+    // read is the corresponding Sink, but rustc knows the exact types better
+    // than I do.
     let (write, read) = ws_stream.split();
     read.filter_map(|r| async move {
         match r {
