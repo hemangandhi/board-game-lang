@@ -10,5 +10,5 @@ edition = "2018"
 futures-util = "0.3.8"
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "0.3.4", features = ["macros", "rt", "rt-multi-thread", "io-util"] }
+tokio = { version = "1.8.4", features = ["macros", "rt", "rt-multi-thread", "io-util"] }
 tokio-tungstenite = "0.12.0"
